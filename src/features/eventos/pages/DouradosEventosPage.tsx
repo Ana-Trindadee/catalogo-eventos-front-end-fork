@@ -1,5 +1,7 @@
 // src/pages/DouradosPlusPage.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import SideBar from "../../componentes/SideBar";
+import Header from "../../componentes/Header";
 
 type Evento = {
   id: string;
@@ -278,6 +280,19 @@ ${ev.desc}`
     [cidades, cidadeSelecionadaId]
   );
 
+  const handleActiveTab = (value: any) => {
+    setActiveTab(value);
+  }
+
+  const handleSideMenuOpen = () => {
+    const atualState = isSideMenuOpen;
+    setIsSideMenuOpen(!atualState);
+  }
+
+  const handleShowFilters = () => {
+    setShowFilters((f) => !f);
+  }
+
   const pontosFiltrados = useMemo(() => {
     if (!cidadeSelecionada) return [];
     const q = buscaPonto.toLowerCase();
@@ -300,113 +315,12 @@ ${ev.desc}`
       )}
 
       {/* Side menu */}
-      <nav
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-[#232f3e] text-white transform transition-transform duration-300 ${
-          isSideMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-        aria-label="Menu lateral de navegação"
-      >
-        <button
-          className="absolute top-3 right-4 text-2xl"
-          onClick={() => setIsSideMenuOpen(false)}
-          aria-label="Fechar menu"
-        >
-          &times;
-        </button>
 
-        <div className="pt-20">
-          <a
-            href="#"
-            className="block px-6 py-3 border-b border-white/10 hover:bg-[#37475a]"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab("eventos");
-              setIsSideMenuOpen(false);
-            }}
-          >
-            Início / Eventos
-          </a>
-          <a
-            href="#"
-            className="block px-6 py-3 border-b border-white/10 hover:bg-[#37475a]"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab("eventos");
-              setIsSideMenuOpen(false);
-            }}
-          >
-            Eventos e Categorias
-          </a>
-          <a
-            href="#"
-            className="block px-6 py-3 border-b border-white/10 hover:bg-[#37475a]"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab("turismo");
-              setIsSideMenuOpen(false);
-            }}
-          >
-            Turismo
-          </a>
-          <a
-            href="#"
-            className="block px-6 py-3 border-b border-white/10 hover:bg-[#37475a]"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab("cidades");
-              setIsSideMenuOpen(false);
-            }}
-          >
-            Cidades da região
-          </a>
-        </div>
-      </nav>
+      <SideBar open={isSideMenuOpen} handleSideMenuOpen={handleSideMenuOpen} handleActiveTab={handleActiveTab} />
 
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 backdrop-blur">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <button
-            className="flex flex-col gap-[5px] w-7 h-6 lg:hidden"
-            aria-label="Abrir menu"
-            aria-expanded={isSideMenuOpen}
-            onClick={() => setIsSideMenuOpen((p) => !p)}
-          >
-            <span
-              className={`h-[3px] rounded bg-[#e9f2ff] transition-transform ${
-                isSideMenuOpen ? "translate-y-[9px] rotate-45" : ""
-              }`}
-            />
-            <span
-              className={`h-[3px] rounded bg-[#e9f2ff] transition-opacity ${
-                isSideMenuOpen ? "opacity-0" : "opacity-100"
-              }`}
-            />
-            <span
-              className={`h-[3px] rounded bg-[#e9f2ff] transition-transform ${
-                isSideMenuOpen ? "-translate-y-[9px] -rotate-45" : ""
-              }`}
-            />
-          </button>
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[conic-gradient(at_50%_50%,#74f1ff,#7cffc1,#a58cff,#74f1ff)] shadow-[0_0_16px_rgba(116,241,255,0.35)]" />
-            <span className="font-extrabold tracking-[0.05em] text-lg">
-              Dourados<span className="opacity-70">+</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              className="inline-flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-lg"
-              id="btn-toggle-busca"
-              onClick={() => setShowFilters((p) => !p)}
-              title="Buscar"
-            >
-              🔍
-            </button>
-          </div>
-        </div>
-      </header>
+      
+      <Header open={isSideMenuOpen} handleSideMenuOpen={handleSideMenuOpen} handleShowFilters={handleShowFilters} />
 
       {/* Filtros topo */}
       {showFilters && (
