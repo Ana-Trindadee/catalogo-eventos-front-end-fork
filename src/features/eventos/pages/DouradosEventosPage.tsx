@@ -1,18 +1,15 @@
-import React, { useMemo, useState } from "react";
-import { useAppData } from "../../../context/appDataContext";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import type { Cidade, Evento, PontoTuristico } from "../../../domain";
-import Header from "../componentes/Header";
-import SideBar from "../componentes/SideBar";
 import { Button, Card } from "../../../shared/ui";
-import { EventFilters } from "../componentes/EventFilters";
-import { EventList } from "../componentes/EventList";
-import { TourismSection } from "../componentes/TourismSection";
-import { CitiesSection } from "../componentes/CitiesSection";
-import { EventFormModal } from "../componentes/EventFormModal";
 import { CidadeFormModal } from "../componentes/CidadeFormModal";
+import { CitiesSection } from "../componentes/CitiesSection";
+import { EventList } from "../componentes/EventList";
 import { PontoFormModal } from "../componentes/PontoFormModal";
+import { TourismSection } from "../componentes/TourismSection";
+import { useEventosStore } from "../../../context/eventosStore";
+import { useCidadesStore } from "../../../context/cidadesStore";
 
-type Tab = "eventos" | "turismo" | "cidades";
+export type Tab = "eventos" | "turismo" | "cidades";
 
 const formatDate = (d: string) =>
   new Date(`${d}T00:00:00`).toLocaleDateString("pt-BR", {
@@ -20,29 +17,37 @@ const formatDate = (d: string) =>
   });
 
 export const DouradosEventosPage: React.FC = () => {
-  const {
-    state: { eventos, cidades },
-    createOrUpdateEvento,
-    deleteEvento,
-    createOrUpdateCidade,
-    deleteCidade,
-    createOrUpdatePonto,
-    deletePonto,
-  } = useAppData();
+
+  const { eventos, createOrUpdateEvento, deleteEvento } =
+    useEventosStore();
+  const { cidades, createOrUpdateCidade, deleteCidade, createOrUpdatePonto, deletePonto } =
+    useCidadesStore();
+  
+  const EventFormModal = React.lazy(
+    () => import("../componentes/EventFormModal"),
+  );
+
+  const [cidadeSelecionadaId, setCidadeSelecionadaId] = useState<string | null>(
+    () => cidades[0]?.id ?? null,
+  );
+  useEffect(() => {
+    if (!cidadeSelecionadaId && cidades.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCidadeSelecionadaId(cidades[0].id);
+    }
+  }, [cidades, cidadeSelecionadaId]);
 
   const [tab, setTab] = useState<Tab>("eventos");
-  const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  
+
   // filtros de eventos
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [search, setSearch] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [cat, setCat] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dataMin, setDataMin] = useState("");
 
   // turismo
-  const [cidadeSelecionadaId, setCidadeSelecionadaId] = useState<string | null>(
-    () => cidades[0]?.id ?? null
-  );
   const [buscaPonto, setBuscaPonto] = useState("");
 
   // modais
@@ -50,14 +55,6 @@ export const DouradosEventosPage: React.FC = () => {
   const [cidadeEdit, setCidadeEdit] = useState<Cidade | null>(null);
   const [pontoEdit, setPontoEdit] = useState<PontoTuristico | null>(null);
   const [pontoCidadeId, setPontoCidadeId] = useState<string | null>(null);
-
-  const handleSideMenuOpen = () => {
-    setIsSideMenuOpen((prev) => !prev);
-  };
-
-  const handleShowFilters = () => {
-    setShowFilters((prev) => !prev);
-  };
 
   const eventosFiltrados = useMemo(
     () =>
@@ -71,7 +68,7 @@ export const DouradosEventosPage: React.FC = () => {
           const okQ = !search || txt.includes(search.toLowerCase());
           return okCat && okData && okQ;
         }),
-    [eventos, cat, dataMin, search]
+    [eventos, cat, dataMin, search],
   );
 
   const cidadeSelecionada =
@@ -81,14 +78,16 @@ export const DouradosEventosPage: React.FC = () => {
     if (!cidadeSelecionada) return [];
     const q = buscaPonto.toLowerCase();
     return cidadeSelecionada.pontos.filter((p) =>
-      `${p.nome} ${p.tipo}`.toLowerCase().includes(q)
+      `${p.nome} ${p.tipo}`.toLowerCase().includes(q),
     );
   }, [buscaPonto, cidadeSelecionada]);
 
   // === callbacks de CRUD usando o context ===
 
-  const handleSalvarEvento = (dados: Omit<Evento, "id"> & { id?: string }) => {
-    createOrUpdateEvento(dados);
+  const handleSalvarEvento = async (
+    dados: Omit<Evento, "id"> & { id?: string },
+  ) => {
+    await createOrUpdateEvento(dados);
     setEventoEdit(null);
   };
 
@@ -98,7 +97,7 @@ export const DouradosEventosPage: React.FC = () => {
   };
 
   const handleSalvarCidade = (
-    dados: Omit<Cidade, "id" | "pontos"> & { id?: string }
+    dados: Omit<Cidade, "id" | "pontos"> & { id?: string },
   ) => {
     createOrUpdateCidade(dados);
     setCidadeEdit(null);
@@ -115,7 +114,7 @@ export const DouradosEventosPage: React.FC = () => {
 
   const handleSalvarPonto = (
     cidadeId: string,
-    dados: Omit<PontoTuristico, "id"> & { id?: string }
+    dados: Omit<PontoTuristico, "id"> & { id?: string },
   ) => {
     createOrUpdatePonto(cidadeId, dados);
     setPontoEdit(null);
@@ -134,107 +133,76 @@ ${formatDate(ev.data)} ${ev.hora || ""}
 ${ev.local}
 ${ev.preco}
 
-${ev.desc}`
+${ev.desc}`,
     );
   };
 
   // === UI ===
 
   return (
-    <div className="min-h-screen text-[#e9f2ff] bg-slate-950">
-      {/* overlay do menu lateral */}
-      {isSideMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={handleSideMenuOpen}
-        />
-      )}
+    <>
+      <section className="flex flex-col items-center justify-center text-center mb-8">
+        <Card className="w-full max-w-3xl p-6 relative overflow-hidden">
+          <p className="text-xs tracking-[0.2em] uppercase text-[#3c203b] font-semibold">
+            Agenda &amp; Guia • Dourados/MS
+          </p>
+          <h1 className="mt-2 mb-3 text-2xl md:text-3xl font-extrabold">
+            Descubra o que rola na cidade e explore o melhor do turismo local.
+          </h1>
+          <p className="text-sm md:text-base text-[#3c203b] leading-relaxed">
+            Uma plataforma simples e poderosa para divulgar{" "}
+            <strong>eventos</strong>, conhecer{" "}
+            <strong>pontos turísticos</strong> e cadastrar informações de{" "}
+            <strong>cidades da região</strong>.
+          </p>
+        </Card>
+      </section>
 
-      <SideBar
-        open={isSideMenuOpen}
-        handleSideMenuOpen={handleSideMenuOpen}
-        handleActiveTab={(value) => {
-          setTab(value as Tab);
-          setIsSideMenuOpen(false);
-        }}
-      />
+      {/* tabs */}
+      <div
+        className="mb-6 flex flex-wrap gap-2"
+        role="tablist"
+        aria-label="Seções Principais"
+      >
+        <Button
+          role="tab"
+          aria-selected={tab === "eventos"}
+          aria-controls="painel-eventos"
+          variant={tab === "eventos" ? "primary" : "secondary"}
+          size="sm"
+          onClick={() => setTab("eventos")}
+        >
+          Eventos
+        </Button>
+        <Button
+          role="tab"
+          aria-selected={tab === "turismo"}
+          aria-controls="painel-turismo"
+          variant={tab === "turismo" ? "primary" : "secondary"}
+          size="sm"
+          onClick={() => setTab("turismo")}
+        >
+          Turismo
+        </Button>
+        <Button
+          role="tab"
+          aria-selected={tab === "cidades"}
+          aria-controls="painel-cidades"
+          variant={tab === "cidades" ? "primary" : "secondary"}
+          size="sm"
+          onClick={() => setTab("cidades")}
+        >
+          Cidades
+        </Button>
+      </div>
 
-      <Header
-        open={isSideMenuOpen}
-        handleSideMenuOpen={handleSideMenuOpen}
-        handleShowFilters={handleShowFilters}
-      />
-
-      {/* filtros de eventos */}
-      {showFilters && (
-        <section className="border-b border-white/10 bg-slate-900/80">
-          <div className="max-w-5xl mx-auto px-4 py-4">
-            <Card className="p-4">
-              <EventFilters
-                search={search}
-                onSearchChange={setSearch}
-                category={cat}
-                onCategoryChange={setCat}
-                dateFrom={dataMin}
-                onDateFromChange={setDataMin}
-                onClear={() => {
-                  setSearch("");
-                  setCat("");
-                  setDataMin("");
-                }}
-                onNewEvent={() => setEventoEdit({} as Evento)}
-              />
-            </Card>
-          </div>
-        </section>
-      )}
-
-      <main className="max-w-5xl mx-auto px-4 pb-16 pt-8">
-        {/* hero */}
-        <section className="flex flex-col items-center justify-center text-center mb-8">
-          <Card className="w-full max-w-3xl p-6 relative overflow-hidden">
-            <p className="text-xs tracking-[0.2em] uppercase text-[#9fb0c8] font-semibold">
-              Agenda &amp; Guia • Dourados/MS
-            </p>
-            <h1 className="mt-2 mb-3 text-2xl md:text-3xl font-extrabold">
-              Descubra o que rola na cidade e explore o melhor do turismo local.
-            </h1>
-            <p className="text-sm md:text-base text-[#cfe0fb] leading-relaxed">
-              Uma plataforma simples e poderosa para divulgar{" "}
-              <strong>eventos</strong>, conhecer{" "}
-              <strong>pontos turísticos</strong> e cadastrar informações de{" "}
-              <strong>cidades da região</strong>.
-            </p>
-          </Card>
-        </section>
-
-        {/* tabs */}
-        <div className="mb-6 flex flex-wrap gap-2">
-          <Button
-            variant={tab === "eventos" ? "primary" : "secondary"}
-            size="sm"
-            onClick={() => setTab("eventos")}
-          >
-            Eventos
-          </Button>
-          <Button
-            variant={tab === "turismo" ? "primary" : "secondary"}
-            size="sm"
-            onClick={() => setTab("turismo")}
-          >
-            Turismo
-          </Button>
-          <Button
-            variant={tab === "cidades" ? "primary" : "secondary"}
-            size="sm"
-            onClick={() => setTab("cidades")}
-          >
-            Cidades
-          </Button>
-        </div>
-
-        {/* painéis */}
-        {tab === "eventos" && (
+      {/* painéis */}
+      {tab === "eventos" && (
+        <section
+          id="painel-eventos"
+          role="tabpanel"
+          aria-labelledby="tab-eventos"
+        >
           <EventList
             eventos={eventosFiltrados}
             onNewEvent={() => setEventoEdit({} as Evento)}
@@ -242,9 +210,15 @@ ${ev.desc}`
             onDeleteEvent={handleExcluirEvento}
             onDetails={handleDetalhesEvento}
           />
-        )}
+        </section>
+      )}
 
-        {tab === "turismo" && (
+      {tab === "turismo" && (
+        <section
+          id="painel-turismo"
+          role="tabpanel"
+          aria-labelledby="tab-turismo"
+        >
           <TourismSection
             cidades={cidades}
             cidadeSelecionada={cidadeSelecionada ?? null}
@@ -273,9 +247,15 @@ ${ev.desc}`
             }}
             onIrParaCidades={() => setTab("cidades")}
           />
-        )}
+        </section>
+      )}
 
-        {tab === "cidades" && (
+      {tab === "cidades" && (
+        <section
+          id="painel-cidades"
+          role="tabpanel"
+          aria-labelledby="tab-cidades"
+        >
           <CitiesSection
             cidades={cidades}
             onNovaCidade={() => setCidadeEdit({} as Cidade)}
@@ -286,20 +266,19 @@ ${ev.desc}`
             onEditarCidade={(cidade) => setCidadeEdit(cidade)}
             onExcluirCidade={handleExcluirCidade}
           />
-        )}
-      </main>
-
-      <footer className="border-t border-white/10 py-6 text-center text-xs text-[#9fb0c8]">
-        Dourados+ • Projeto Inovador • Turma 2024.45.253 • Senac-MS.
-      </footer>
-
+        </section>
+      )}
       {/* modais */}
-      <EventFormModal
-        open={!!eventoEdit}
-        initialValue={eventoEdit}
-        onClose={() => setEventoEdit(null)}
-        onSave={handleSalvarEvento}
-      />
+      {eventoEdit && (
+        <Suspense fallback={null}>
+          <EventFormModal
+            open={!!eventoEdit}
+            initialValue={eventoEdit}
+            onClose={() => setEventoEdit(null)}
+            onSave={handleSalvarEvento}
+          />
+        </Suspense>
+      )}
 
       <CidadeFormModal
         open={!!cidadeEdit}
@@ -319,6 +298,6 @@ ${ev.desc}`
         }}
         onSave={handleSalvarPonto}
       />
-    </div>
+    </>
   );
 };

@@ -1,6 +1,6 @@
 import React from "react";
 import type { Cidade } from "../../../domain";
-import { Button, Modal } from "../../../shared/ui";
+import { Button, Modal, TextAreaField, TextField } from "../../../shared/ui";
 
 interface CidadeFormModalProps {
   open: boolean;
@@ -39,7 +39,11 @@ export const CidadeFormModal: React.FC<CidadeFormModalProps> = ({
   };
 
   return (
-    <Modal onClose={onClose} className="max-w-xl">
+    <Modal
+      onClose={onClose}
+      className="max-w-xl"
+      ariaDescribedBy="titulo-modal-cidade"
+    >
       <div className="mb-4 flex items-center justify-between gap-2">
         <strong className="text-sm md:text-base">
           {initialValue?.id ? "Editar cidade" : "Nova cidade"}
@@ -55,35 +59,28 @@ export const CidadeFormModal: React.FC<CidadeFormModalProps> = ({
         autoComplete="off"
       >
         <div className="flex flex-col md:flex-row gap-3">
-          <label className="flex-1 flex flex-col gap-1">
-            <span>Nome da cidade</span>
-            <input
-              name="nome"
-              defaultValue={initialValue?.nome ?? ""}
-              className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 outline-none"
-            />
-          </label>
-          <label className="w-24 flex flex-col gap-1">
-            <span>UF</span>
-            <input
-              name="uf"
-              maxLength={2}
-              defaultValue={initialValue?.uf ?? "MS"}
-              className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 uppercase outline-none"
-            />
-          </label>
-        </div>
-
-        <label className="flex flex-col gap-1">
-          <span>Descrição</span>
-          <textarea
-            name="desc"
-            rows={3}
-            placeholder="Breve descrição da cidade…"
-            defaultValue={initialValue?.desc ?? ""}
-            className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 outline-none resize-none"
+          <TextField 
+            label="Nome da cidade" 
+            name="nome" 
+            defaultValue={initialValue?.nome ?? ""} 
+            className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 outline-none" 
           />
-        </label>
+          <TextField 
+            label="UF" 
+            name="uf" 
+            maxLength={2} 
+            defaultValue={initialValue?.uf ?? "MS"} 
+            className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 uppercase outline-none" 
+          />
+        </div>
+        <TextAreaField 
+          label="Descrição" 
+          name="desc" 
+          rows={3} 
+          placeholder="Breve descrição da cidade…" 
+          defaultValue={initialValue?.desc ?? ""} 
+          className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 outline-none resize-none"
+        />
 
         <div className="mt-2 flex justify-end">
           <Button variant="primary" size="sm" type="submit">
